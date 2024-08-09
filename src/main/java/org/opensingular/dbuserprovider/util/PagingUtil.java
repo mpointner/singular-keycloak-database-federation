@@ -2,7 +2,7 @@ package org.opensingular.dbuserprovider.util;
 
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.pagination.LimitHandler;
-import org.hibernate.engine.spi.RowSelection;
+import org.hibernate.query.spi.Limit;
 import org.opensingular.dbuserprovider.DBUserStorageException;
 import org.opensingular.dbuserprovider.persistence.RDBMS;
 
@@ -31,21 +31,20 @@ public class PagingUtil {
 
         final Dialect dialect = RDBMS.getDialect();
 
-        RowSelection rowSelection = new RowSelection();
-        rowSelection.setFetchSize(pageable.maxResults);
-        rowSelection.setFirstRow(pageable.firstResult);
-        rowSelection.setMaxRows(pageable.maxResults);
+        Limit limit = new Limit();
+        limit.setMaxRows(pageable.firstResult);
+        limit.setFirstRow(pageable.firstResult);
 
         String escapedSQL = escapeQuestionMarks(query);
 
         StringBuilder processedSQL;
         try {
             LimitHandler limitHandler = dialect.getLimitHandler();
-            processedSQL = new StringBuilder(limitHandler.processSql(escapedSQL, rowSelection));
+            processedSQL = new StringBuilder(limitHandler.processSql(escapedSQL, limit));
             int                                 col       = 1;
             PreparedStatementParameterCollector collector = new PreparedStatementParameterCollector();
-            col += limitHandler.bindLimitParametersAtStartOfQuery(rowSelection, collector, col);
-            limitHandler.bindLimitParametersAtEndOfQuery(rowSelection, collector, col);
+            col += limitHandler.bindLimitParametersAtStartOfQuery(limit, collector, col);
+            limitHandler.bindLimitParametersAtEndOfQuery(limit, collector, col);
 
             Map<Integer, Object> parameters = collector.getParameters();
             for (int i = 1; i <= parameters.keySet().size(); i++) {
